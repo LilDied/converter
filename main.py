@@ -1,47 +1,33 @@
 from fastapi import FastAPI
+import requests
 
 app = FastAPI()
 
-rates = {
-    "USD": {
-        "BYN": 3.27018,  # 1 USD = 3.27018 BYN
-        "EUR": 0.91683,  # 1 USD = 0.91683 EUR
-        "RUB": 86.1350,  # 1 USD = 86.1350 RUB
-        "USD": 1
-    },
-    "BYN": {
-        "USD": 0.305808,  # 1 BYN = 0.305808 USD
-        "EUR": 0.279637,  # 1 BYN = 0.279637 EUR
-        "RUB": 25.7930,  # 1 BYN = 25.7930 RUB
-        "BYN": 1
-    },
-    "EUR": {
-        "USD": 1.09071,  # 1 EUR = 1.09071 USD
-        "BYN": 3.5760,   # 1 EUR = 3.5760 BYN
-        "RUB": 94.0,     # 1 EUR = 94.0 RUB
-        "EUR": 1
-    },
-    "RUB": {
-        "USD": 0.01161,  # 1 RUB = 0.01161 USD
-        "BYN": 0.03876,  # 1 RUB = 0.03876 BYN
-        "EUR": 0.01064,  # 1 RUB = 0.01064 EUR
-        "RUB": 1
-    }
-}
+# Вставь сюда свой реальный API-ключ
+api_key = 'ee7d76b1eacfb053d967bdde'
+url = f"https://v6.exchangerate-api.com/v6/{api_key}/latest/USD"
 
 @app.get("/convert")
-async def convert(from_currency: str, to_currency: str, amount: float):
-    try:
-        rate = rates[from_currency.upper()][to_currency.upper()]
-        converted_amount = amount * rate
-        return {
-            "from": from_currency.upper(),
-            "to": to_currency.upper(),
-            "amount": amount,
-            "converted": round(converted_amount, 2)
-        }
-    except KeyError:
-        return {"error": "Валюта не найдена или неверно введена"}
-
-
-
+def convert(amount: float, from_currency: str, to_currency: str):
+    response = requests.get(url)
+    data = response.json()  # Получаем курсы валют
+    
+    # Проверяем, что курсы получены
+    if 'conversion_rates' not in data:
+        return {"error": "Не удалось получить курсы валют"}
+    
+    rates = data['conversion_rates']
+    
+    if from_currency == "USD":
+        # Конвертируем из USD в целевую валюту
+        if to_currency in rates:
+            converted_amount = amount * rates[to_currency]
+            return {"converted_amount": converted_amount}
+    elif from_currency in rates and to_currency in rates:
+        # Конвертируем между другими валютами
+        from_rate = rates[from_currency]
+        to_rate = rates[to_currency]
+        converted_amount = amount * (to_rate / from_rate)
+        return {"converted_amount": converted_amount}
+    
+    return {"error": "Неверные валюты"}

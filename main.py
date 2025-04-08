@@ -30,7 +30,7 @@ rates = {
 }
 
 @app.get("/convert")
-def convert(from_currency: str, to_currency: str, amount: float):
+async def convert(from_currency: str, to_currency: str, amount: float):
     try:
         rate = rates[from_currency.upper()][to_currency.upper()]
         converted_amount = amount * rate
